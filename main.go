@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -18,38 +19,41 @@ type UserData struct {
 	numberOfTickets uint
 }
 
+var wg = sync.WaitGroup{}
+
 func main() {
 
 	greetUsers()
 
-	for {
-		firstName, lastName, email, userTickets := getUserInput()
-		isValidName, isValidEmail, isValidTicketNumber := validateUserInput(firstName, lastName, email, userTickets)
+	firstName, lastName, email, userTickets := getUserInput()
+	isValidName, isValidEmail, isValidTicketNumber := validateUserInput(firstName, lastName, email, userTickets)
 
-		if isValidName && isValidEmail && isValidTicketNumber {
+	if isValidName && isValidEmail && isValidTicketNumber {
 
-			bookTicket(userTickets, firstName, lastName, email)
-			go sendTicket(userTickets, firstName, lastName, email)
+		bookTicket(userTickets, firstName, lastName, email)
 
-			firstNames := getFirstNames()
-			fmt.Printf("The first names of bookings are: %v\n", firstNames)
+		wg.Add(1)
+		go sendTicket(userTickets, firstName, lastName, email)
 
-			if remainingTickets == 0 {
-				fmt.Println("Our conferance is booked out. Come back next year.")
-				break
-			}
-		} else {
-			if !isValidName {
-				fmt.Println("First name or last name you entered is too short.")
-			}
-			if !isValidEmail {
-				fmt.Println("Your email is invalid.")
-			}
-			if !isValidTicketNumber {
-				fmt.Printf("We only have %v tickets remaining, so you can't book %v tickets\n", remainingTickets, userTickets)
-			}
+		firstNames := getFirstNames()
+		fmt.Printf("The first names of bookings are: %v\n", firstNames)
+
+		if remainingTickets == 0 {
+			fmt.Println("Our conferance is booked out. Come back next year.")
+			// break
+		}
+	} else {
+		if !isValidName {
+			fmt.Println("First name or last name you entered is too short.")
+		}
+		if !isValidEmail {
+			fmt.Println("Your email is invalid.")
+		}
+		if !isValidTicketNumber {
+			fmt.Printf("We only have %v tickets remaining, so you can't book %v tickets\n", remainingTickets, userTickets)
 		}
 	}
+	wg.Wait()
 }
 
 //funky zone
@@ -111,4 +115,5 @@ func sendTicket(userTickets uint, firstName string, lastName string, email strin
 	fmt.Println("############")
 	fmt.Printf("Sending ticket:\n %v \nto email address %v\n", ticket, email)
 	fmt.Println("############")
+	wg.Done()
 }
